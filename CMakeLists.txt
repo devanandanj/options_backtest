@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(backtest_core
         src/data/loader.cpp
+        include/timer.hpp
 )
 target_include_directories(backtest_core PUBLIC include)
 

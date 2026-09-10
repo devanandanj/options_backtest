@@ -5,11 +5,16 @@
 #include <vector>
 #include <iostream>
 
+#include "../include/timer.hpp"
 #include "../include/backtester/contract.hpp"
 #include "../include/data/loader.hpp"
 
 int main() {
-    auto rows = backtester::load_chain_csv("../data/sample/idfcfirstb_jan2024_ce_80.csv");
-    std::cout << "Loaded " << rows.size() << " rows" << std::endl;
+    const auto rows = [&] {
+        Timer t{"Loading CSV"};
+        return backtester::load_chain_csv("../data/sample/idfcfirstb_jan2024_ce_80.csv");
+    }();
+
+    std::cout << "Loaded " << rows.size() << " rows\n";
     return 0;
 }
