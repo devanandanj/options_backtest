@@ -12,10 +12,10 @@ namespace backtester {
         Contract contract;
         std::chrono::year_month_day date{};
         double open{}, high{}, low{}, close{}, ltp{}, settle_price{};
-        long total_traded_qty{};
+        uint64_t total_traded_qty{};
         double premium_value{};
         double open_interest{};
-        long change_in_oi{};
+        int64_t change_in_oi{};
     };
 
     std::vector<ChainRow> load_chain_csv(const std::string& path);
