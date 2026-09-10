@@ -1,0 +1,65 @@
+# ===================================================================
+# CLion / JetBrains IDE Files
+# ===================================================================
+.idea/
+cmake-build-*/
+
+# If you prefer to version code style and run configurations within your team,
+# comment out the .idea/ rule above and uncomment the specific ignores below:
+# .idea/workspace.xml
+# .idea/tasks.xml
+# .idea/usage.statistics.xml
+# .idea/shelf/
+# .idea/dictionaries/
+# .idea/httpRequests/
+
+# ===================================================================
+# CMake & Build Artifacts
+# ===================================================================
+build/
+bin/
+lib/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.ninja
+.ninja_*
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# ===================================================================
+# Compiled Binaries & Object Files
+# ===================================================================
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# ===================================================================
+# System & Editor Temporary Files
+# ===================================================================
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+
+# Crash dumps & core files
+core
+*.dmp
+
+# Data & logs (uncomment if you store local scratch data)
+# *.log
+# *.csvgit push origin master --force
