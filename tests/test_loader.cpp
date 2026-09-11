@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "../include/backtester/contract.hpp"
+#include "../include/data/loader.hpp"
 
 TEST(Loader, ThrowsOnMissingFile) {
     EXPECT_THROW(backtester::load_chain_csv("nonexistent.csv"), std::runtime_error);

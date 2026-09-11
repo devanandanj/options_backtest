@@ -1,13 +1,11 @@
 from datetime import date
-from jugaad_data.nse import derivatives_df
+from jugaad_data.nse import stock_df
 
-df = derivatives_df(
+df = stock_df(
     symbol="IDFCFIRSTB",
-    from_date=date(2024, 1, 1),
-    to_date=date(2024, 1, 31),
-    expiry_date=date(2024, 1, 25),   # pick an actual expiry Thursday in that month
-    instrument_type="OPTSTK",
-    option_type="CE",                 # "PE" for puts
-    strike_price=80                   # pick a strike near spot for that period
+    from_date=date(2022, 1, 1),
+    to_date=date(2024, 7, 5),
+    series="EQ"
 )
-df.to_csv("../data/sample/idfcfirstb_jan2024_ce_80.csv", index=False)
+df.to_csv("../data/sample/idfcfirstb_underlying_jan2022_july2024.csv", index=False)
+print(df.columns.tolist())

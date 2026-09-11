@@ -8,7 +8,7 @@
 #include <chrono>
 
 namespace backtester {
-    enum class Right { Call, Put};
+    enum class Right { Call, Put };
 
     struct Contract {
         std::string underlying;

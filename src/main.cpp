@@ -2,19 +2,10 @@
 // Created by devanandan on 10-09-2026.
 //
 
-#include <vector>
-#include <iostream>
-
-#include "../include/timer.hpp"
-#include "../include/backtester/contract.hpp"
-#include "../include/data/loader.hpp"
+#include "../include/strategy/strike_strategy.hpp"
 
 int main() {
-    const auto rows = [&] {
-        Timer t{"Loading CSV"};
-        return backtester::load_chain_csv("../data/sample/idfcfirstb_jan2024_ce_80.csv");
-    }();
-
-    std::cout << "Loaded " << rows.size() << " rows\n";
+    backtester::run_strike_strategy("../data/sample/idfcfirstb_underlying_2022_2026.csv",
+        0.10, 2);
     return 0;
 }
