@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(backtest_core
         src/data/loader.cpp
-        src/strategy/strike_strategy.cpp
+        src/strategy/short_call.cpp
         include/timer.hpp
-        include/strategy/strike_strategy.hpp
+        include/strategy/short_call.hpp
         include/data/monthly_aggregate.hpp
         src/data/monthly_aggregate.cpp
         include/data/equity_loader.hpp

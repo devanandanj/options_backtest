@@ -2,7 +2,7 @@
 // Created by devanandan on 10-09-2026.
 //
 
-#include <../include/strategy/strike_strategy.hpp>
+#include <../include/strategy/short_call.hpp>
 
 #include "timer.hpp"
 #include "data/equity_loader.hpp"
@@ -16,9 +16,9 @@
 #include "data/monthly_aggregate.hpp"
 
 namespace backtester{
-    StrategyResult strike_strategy(
+    StrategyResult short_call_strategy(
         const std::vector<MonthlyPrice>& prices,
-        double strike_pct,
+        double otm_pct,
         int month_offset
     ) {
         int total = 0;
@@ -30,7 +30,7 @@ namespace backtester{
             // premium is read from. Using the month-end close here would pick a
             // strike with information the trader could not have had at entry.
             double entry_price = prices[i].first_close;
-            double strike = entry_price * (1.0 + strike_pct);
+            double strike = entry_price * (1.0 + otm_pct);
             double check_price = prices[i + month_offset].close;
             bool success = check_price < strike;
 
@@ -100,13 +100,13 @@ namespace backtester{
         }
     }
 
-    StrategyResult strike_strategy(
+    StrategyResult short_call_strategy(
         const std::vector<MonthlyPrice>& prices,
         const std::vector<ChainRow>& chain,
-        double strike_pct,
+        double otm_pct,
         int month_offset
     ) {
-        StrategyResult result = strike_strategy(prices, strike_pct, month_offset);
+        StrategyResult result = short_call_strategy(prices, otm_pct, month_offset);
 
         for (auto& o : result.outcomes) {
             double rounded_strike{};
@@ -189,7 +189,7 @@ namespace backtester{
         }
     }
 
-    void run_strike_strategy(std::string_view csv_path, double pct, int month_offset, std::string_view out_dir) {
+    void run_short_call(std::string_view csv_path, double pct, int month_offset, std::string_view out_dir) {
         const auto rows = [&] {
             Timer t{"Loading CSV"};
             return load_equity_csv(std::string(csv_path));
@@ -200,7 +200,7 @@ namespace backtester{
         const auto monthly = aggregate_monthly_closes(rows);
         std::cout << "Aggregated into " << monthly.size() << " months\n";
 
-        const auto result = strike_strategy(monthly, pct, month_offset);
+        const auto result = short_call_strategy(monthly, pct, month_offset);
 
         for (const auto& o : result.outcomes) {
             std::cout << o.entry_month << " (entry " << o.entry_price
@@ -220,14 +220,14 @@ namespace backtester{
         const long pct_int = std::lround(pct * 100.0);
 
         const std::string out_filename = stem
-            + "_strike_buffer_pct" + std::to_string(pct_int)
+            + "_otm_pct" + std::to_string(pct_int)
             + "_monthly_offset" + std::to_string(month_offset)
             + ".csv";
 
         export_output_to_csv(result, out_dir, out_filename);
     }
 
-    void run_strike_strategy(std::string_view csv_path, std::string_view chain_csv_path, double pct,
+    void run_short_call(std::string_view csv_path, std::string_view chain_csv_path, double pct,
         int month_offset, std::string_view out_dir) {
 
         const auto rows = [&] {
@@ -247,7 +247,7 @@ namespace backtester{
         const auto monthly = aggregate_monthly_closes(rows);
         std::cout << "Aggregated into " << monthly.size() << " months\n";
 
-        const auto result = strike_strategy(monthly, chain, pct, month_offset);
+        const auto result = short_call_strategy(monthly, chain, pct, month_offset);
 
         for (const auto& o : result.outcomes) {
             std::cout << o.entry_month << " (entry " << o.entry_price
@@ -267,7 +267,7 @@ namespace backtester{
         const long pct_int = std::lround(pct * 100.0);
 
         const std::string out_filename = stem
-            + "_strike_buffer_pct" + std::to_string(pct_int)
+            + "_otm_pct" + std::to_string(pct_int)
             + "_monthly_offset" + std::to_string(month_offset)
             + ".csv";
 

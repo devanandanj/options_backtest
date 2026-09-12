@@ -35,21 +35,21 @@ namespace backtester {
         std::vector<MonthOutcome> outcomes;
     };
 
-    StrategyResult strike_strategy( const std::vector<MonthlyPrice>& prices, double strike_pct, int month_offset);
+    StrategyResult short_call_strategy( const std::vector<MonthlyPrice>& prices, double otm_pct, int month_offset);
 
     // Also looks up, per entry month, the strike premium: the raw strike is rounded to the
     // mathematically nearest Call strike actually present in `chain` for that month, and the
     // premium is the option's close price on the earliest trading day of entry_month for that
     // rounded strike.
-    StrategyResult strike_strategy( const std::vector<MonthlyPrice>& prices, const std::vector<ChainRow>& chain,
-        double strike_pct, int month_offset);
+    StrategyResult short_call_strategy( const std::vector<MonthlyPrice>& prices, const std::vector<ChainRow>& chain,
+        double otm_pct, int month_offset);
 
     void export_output_to_csv(const StrategyResult& result, std::string_view out_dir, std::string_view filename);
 
-    void run_strike_strategy(std::string_view csv_path, double pct, int month_offset,
-        std::string_view out_dir = "out/strike_strategy");
+    void run_short_call(std::string_view csv_path, double pct, int month_offset,
+        std::string_view out_dir = "out/short_call");
 
-    void run_strike_strategy(std::string_view csv_path, std::string_view chain_csv_path, double pct, int month_offset,
-        std::string_view out_dir = "out/strike_strategy");
+    void run_short_call(std::string_view csv_path, std::string_view chain_csv_path, double pct, int month_offset,
+        std::string_view out_dir = "out/short_call");
 
 }

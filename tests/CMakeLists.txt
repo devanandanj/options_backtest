@@ -13,7 +13,7 @@ FetchContent_MakeAvailable(googletest)
 # Build the test executable containing all test files
 add_executable(backtester_tests
         test_loader.cpp
-        test_strike_strategy.cpp
+        test_short_call.cpp
         ../include/data/monthly_aggregate.hpp
         ../src/data/monthly_aggregate.cpp
 )

@@ -6,7 +6,7 @@
 
 // #include "data/loader.hpp"
 #include "data/equity_loader.hpp"
-#include "strategy/strike_strategy.hpp"
+#include "strategy/short_call.hpp"
 
 #include <vector>
 

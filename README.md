@@ -3,21 +3,21 @@
 A C++20 backtesting engine for NSE (India) equity options, with a Python data
 pipeline for pulling historical underlying and option-chain data.
 
-The engine currently implements one strategy — a monthly OTM covered/short-call
-buffer test — with more planned (see [Roadmap](#roadmap)).
+The engine currently implements one strategy: systematically writing an
+out-of-the-money call each month at a fixed percentage above spot.
 
 ---
 
 ## What the current strategy does
 
-`strike_strategy` answers: *if I sold an out-of-the-money call at the start of
+`short_call_strategy` answers: *if I sold an out-of-the-money call at the start of
 every month, how often would the underlying stay below my strike, and what would
 that have paid?*
 
 For each month in the data:
 
 1. **Entry** — take the underlying's close on the **first trading day** of the month.
-2. **Target strike** — `entry_price × (1 + strike_pct)`. At `strike_pct = 0.10`, a
+2. **Target strike** — `entry_price × (1 + otm_pct)`. At `otm_pct = 0.10`, a
    spot of ₹63.85 gives a ₹70.24 target.
 3. **Round to a real strike** — NSE only lists discrete strikes, so pick the
    **smallest listed CE strike at or above** the target. Rounding *up* is
@@ -32,7 +32,13 @@ For each month in the data:
 6. **P&L** — `payoff = premium − max(0, check_price − strike)`, reported as
    `profit_pct = payoff / entry_price × 100`.
 
-### Two things worth understanding about the output
+### Three things worth understanding about the output
+
+**The payoff is the short call leg only — there is no stock position.** That
+makes it a *naked* call write, not a covered call. If you hold the underlying,
+a rally past your strike is largely offset by the gain on your shares; without
+it, that rally is pure loss. Adding the stock leg would mean
+`payoff += (check_price − entry_price)`, and it changes results dramatically.
 
 **`FAIL` means "strike was breached", not "lost money".** A short call's
 breakeven is `strike + premium`. If the premium collected exceeds how far the
@@ -129,10 +135,10 @@ either can shift a day earlier on an exchange holiday.
 Edit `src/main.cpp` to point at your data and set parameters:
 
 ```cpp
-backtester::run_strike_strategy(
+backtester::run_short_call(
     "../data/sample/idfcfirstb_underlying_2022_2026.csv",  // underlying
     "../data/sample/idfcfirstb_ce_2022_2026.csv",          // option chain
-    0.10,   // strike_pct: 10% OTM buffer
+    0.10,   // otm_pct: 10% OTM buffer
     2);     // month_offset
 ```
 
@@ -143,7 +149,7 @@ cd cmake-build-debug && ./backtest_main.exe
 ```
 
 Results print to stdout and land in
-`out/strike_strategy/<underlying-stem>_strike_buffer_pct<N>_monthly_offset<M>.csv`:
+`out/short_call/<underlying-stem>_otm_pct<N>_monthly_offset<M>.csv`:
 
 ```
 entry_month,entry_price,strike,check_month,check_price,status,rounded_strike,premium,profit_pct
@@ -176,11 +182,11 @@ include/
   data/equity_loader.hpp         Underlying (EQ series) CSV loader
   data/loader.hpp                Option-chain CSV loader + ChainRow
   data/monthly_aggregate.hpp     Daily bars -> monthly first/last closes
-  strategy/strike_strategy.hpp   Strategy API, MonthOutcome, StrategyResult
+  strategy/short_call.hpp        Strategy API, MonthOutcome, StrategyResult
   timer.hpp                      Scoped RAII timing helper
 src/
   data/…                         Loader and aggregation implementations
-  strategy/strike_strategy.cpp   Strategy, P&L, CSV export
+  strategy/short_call.cpp        Strategy, P&L, CSV export
   main.cpp                       Driver
 tests/                           GoogleTest suites
 tools/                           Python data downloaders
@@ -209,18 +215,6 @@ change surfaces loudly instead of silently corrupting results.
 ---
 
 ## Roadmap
-
-The engine is being built out to support a library of strategies behind a shared
-data and reporting layer. Planned work:
-
-**More strategies**
-- Cash-secured puts (the `Right::Put` side of the existing machinery)
-- Covered calls modelled with the underlying leg, not just the short call
-- Vertical spreads (bull call / bear put) to cap the tail risk that naked short
-  calls carry
-- Straddles and strangles for volatility rather than directional exposure
-- Delta- or moneyness-targeted strike selection instead of a fixed percentage buffer
-- Weekly expiry cycles alongside monthly
 
 **Engine improvements**
 - Compounded equity curves — the current `profit_pct` column sums as simple
