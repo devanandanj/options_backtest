@@ -9,30 +9,41 @@
 namespace backtester {
 
     std::vector<MonthlyPrice> aggregate_monthly_closes(const std::vector<EquityRow>& rows) {
-        std::map<int, EquityRow> latest_per_month;
+        // Both ends of the month are needed: the first trading day's close is the
+        // entry reference (picking a strike from the month-end close would be
+        // lookahead), the last trading day's close is the outcome reference.
+        struct MonthBounds {
+            EquityRow first{};
+            EquityRow last{};
+            bool seen{false};
+        };
+        std::map<int, MonthBounds> per_month;
 
         for (const auto& row : rows) {
-            // If EquityRow stores the series column, skip bond series:
-            // if (row.series != "EQ") continue;
-
             int key = static_cast<int>(row.date.year()) * 100
                     + static_cast<unsigned>(row.date.month());
 
-            auto it = latest_per_month.find(key);
-            if (it == latest_per_month.end() || row.date > it->second.date) {
-                latest_per_month[key] = row;
+            auto& b = per_month[key];
+            if (!b.seen) {
+                b.first = row;
+                b.last = row;
+                b.seen = true;
+                continue;
             }
+            if (row.date < b.first.date) b.first = row;
+            if (row.date > b.last.date)  b.last = row;
         }
 
         std::vector<MonthlyPrice> result;
-        result.reserve(latest_per_month.size());
+        result.reserve(per_month.size());
 
-        for (const auto& [key, row] : latest_per_month) {
+        for (const auto& [key, b] : per_month) {
             int year = key / 100;
             unsigned month = key % 100;
             result.push_back(MonthlyPrice{
                 std::format("{:04d}-{:02d}", year, month),
-                row.close
+                b.last.close,
+                b.first.close
             });
         }
 

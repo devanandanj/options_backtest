@@ -3,6 +3,7 @@
 # ===================================================================
 .idea/
 cmake-build-*/
+./.claude
 
 # If you prefer to version code style and run configurations within your team,
 # comment out the .idea/ rule above and uncomment the specific ignores below:
