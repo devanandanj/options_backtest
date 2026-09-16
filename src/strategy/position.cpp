@@ -51,6 +51,13 @@ namespace backtester {
                                          const PositionConfig& config) {
         PositionResult out;
 
+        if (config.cash_settled) {
+            out.not_applicable = "cash-settled underlying: no shares to hold or be "
+                                 "assigned, so there is no covered-call position and "
+                                 "no buy-and-hold benchmark to compare against";
+            return out;
+        }
+
         // .second is false when the number came from configuration rather than NSE.
         const auto lot_for = [&](const std::string& month) -> std::pair<std::uint64_t, bool> {
             const auto it = lots.find(month);

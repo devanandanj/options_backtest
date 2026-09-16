@@ -168,8 +168,20 @@ def test_sweep_returns_one_cell_per_combination_without_outcomes(monkeypatch):
 
 @pytest.mark.skipif(engine.find_engine() is None, reason="backtest_cli not built")
 def test_real_engine_reproduces_the_known_result():
-    symbol = _symbol()
-    body = client.post("/api/backtest", json={"symbol": symbol,
+    # Named, not datasets[0]. This baseline belongs to IDFCFIRSTB specifically, and
+    # picking the first discovered symbol silently re-pointed it at BANKNIFTY the
+    # moment a second dataset was added.
+    # Chain CSVs are not committed - they are large and reproducible from
+    # tools/download_bhavcopies.py - so a fresh clone legitimately has no chain to
+    # price against. Skip rather than fail: the absence is expected, not a defect.
+    found = {d["symbol"]: d for d in client.get("/api/datasets").json()["datasets"]}
+    dataset = found.get("idfcfirstb")
+    if dataset is None:
+        pytest.skip("idfcfirstb sample not present")
+    if not dataset["has_chain"]:
+        pytest.skip("no option chain on disk - run tools/download_bhavcopies.py")
+
+    body = client.post("/api/backtest", json={"symbol": "idfcfirstb",
                                               "otm_pct": 0.10, "month_offset": 2})
     assert body.status_code == 200, body.text
     s = body.json()["summary"]

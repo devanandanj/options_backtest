@@ -36,7 +36,21 @@ std::vector<std::string> split_csv_line(const std::string& line) {
 
 } // anonymous namespace
 
-    // src/data/equity_loader.cpp
+    bool is_index_series(const std::string& path) {
+        std::ifstream file(path);
+        if (!file.is_open()) return false;
+
+        std::string line;
+        std::getline(file, line);          // header
+        while (std::getline(file, line)) {
+            if (line.empty()) continue;
+            const auto f = split_csv_line(line);
+            if (f.size() != 15) continue;
+            return f[1] == "INDEX";        // the first data row settles it
+        }
+        return false;
+    }
+
     std::vector<EquityRow> load_equity_csv(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
@@ -55,8 +69,15 @@ std::vector<std::string> split_csv_line(const std::string& line) {
         auto f = split_csv_line(line);
         if (f.size() != 15) continue;
 
-        // Skip bond tranches (NC, NB, ND, NE) and block deals (BL)
-        if (f[1] != "EQ") continue;
+        // Skip bond tranches (NC, NB, ND, NE) and block deals (BL). NSE files the
+        // same symbol under several series, and an NCD tranche trades at par value
+        // rather than the share price - letting one through would put 1,100 beside
+        // 49.65 in the same series.
+        //
+        // INDEX is accepted alongside EQ because an index has no series of its own:
+        // tools/prepare_index.py writes the level series in this schema and marks it
+        // INDEX rather than mislabelling an index as an equity.
+        if (f[1] != "EQ" && f[1] != "INDEX") continue;
 
         EquityRow row;
         row.date  = parse_date(f[0]);

@@ -222,6 +222,21 @@ function renderPosition(data) {
   const cycles = data.cycles || [];
   const section = $("position-section");
 
+  if (p.not_applicable) {
+    // The share leg does not apply to this instrument at all. Saying so beats
+    // hiding the section, which would read as a rendering bug on an index.
+    section.hidden = false;
+    $("position-summary").innerHTML = "";
+    $("cycles-table").querySelector("tbody").innerHTML = "";
+    const banner = $("position-banner");
+    banner.innerHTML = `<h3>No share leg for this underlying</h3>
+      <p>${escapeHtml(p.not_applicable)}. The option leg above still applies &mdash;
+      index options settle in cash against the index level, which is exactly what
+      <em>check price</em> measures.</p>`;
+    banner.hidden = false;
+    return;
+  }
+
   if (!cycles.length) {
     // No lot size was ever known, so no rupee figure can be honest.
     section.hidden = true;

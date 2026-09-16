@@ -216,6 +216,9 @@ def position_summary(run: dict[str, Any]) -> dict[str, Any]:
         drawdown = max(drawdown, peak - run_pnl)
 
     return {
+        # Non-empty when the share leg does not apply at all - a cash-settled
+        # index has no shares to hold. Distinct from "ran and found nothing".
+        "not_applicable": pos.get("not_applicable") or "",
         "cycles_run": int(pos.get("cycles_run") or 0),
         "assignments": int(pos.get("assignments") or 0),
         "skipped_unknown_lot": skipped_lot,

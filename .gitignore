@@ -62,6 +62,17 @@ venv/
 *.egg-info/
 
 # ── Data ─────────────────────────────────────────────────────────
+# Option chains are not committed. They are large (8.6 MB for a single stock,
+# 40 MB for an index) and fully reproducible: tools/download_bhavcopies.py rebuilds
+# them from NSE's public archive, and tools/prepare_index.py prepares an index one.
+#
+# What IS committed is everything needed to read the project without them: the
+# small underlying series, a trimmed loader fixture, and web/ - which already
+# contains every precomputed result the deployed site serves.
+data/sample/*_ce_*.csv
+data/sample/*_pe_*.csv
+!data/sample/idfcfirstb_jan2024_ce_80.csv
+
 # Partial downloads. The downloader writes to .tmp and moves it into place, so a
 # stray .tmp is an interrupted run rather than anything worth keeping.
 *.csv.tmp

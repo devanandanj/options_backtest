@@ -1,1 +1,1 @@
-{"datasets":[{"symbol":"idfcfirstb","equity_file":"idfcfirstb_underlying_2022_2026.csv","chain_file":"idfcfirstb_ce_2022_2026.csv","start_year":2022,"end_year":2026,"has_chain":true}]}
+{"datasets":[{"symbol":"banknifty","equity_file":"banknifty_underlying_2022_2026.csv","chain_file":"banknifty_ce_2022_2026.csv","start_year":2022,"end_year":2026,"has_chain":true},{"symbol":"idfcfirstb","equity_file":"idfcfirstb_underlying_2022_2026.csv","chain_file":"idfcfirstb_ce_2022_2026.csv","start_year":2022,"end_year":2026,"has_chain":true}]}

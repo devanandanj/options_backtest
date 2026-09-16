@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 from jugaad_data.nse import stock_df, derivatives_df
 
-SYMBOL = "IDFCFIRSTB"
+SYMBOL = "BANKNIFTY"
 
 EQUITY_FROM = date(2022, 1, 1)
 EQUITY_TO = date.today()

@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -61,6 +62,11 @@ namespace backtester {
         std::uint64_t lots{1};
         std::uint64_t lot_size_override{0}; // used only where the chain states none
         bool rebuy_after_assignment{true};  // false parks the proceeds in cash
+        // Set for a cash-settled underlying - an index. There are no shares to hold,
+        // none to be called away, and "buy and hold" would mean an ETF carrying
+        // tracking error and fees rather than the index itself. The simulation
+        // returns empty rather than reporting a position nobody could take.
+        bool cash_settled{false};
     };
 
     struct Cycle {
@@ -105,6 +111,9 @@ namespace backtester {
         // scales its currency figures - worth saying out loud, not burying.
         int cycles_on_override{};
         std::uint64_t shares_held_at_end{};
+        // Empty when the share leg ran. Otherwise says why it did not, so the caller
+        // can explain the absence instead of showing zeros.
+        std::string not_applicable{};
     };
 
     // Walks `result`'s outcomes in order, taking non-overlapping priced cycles.

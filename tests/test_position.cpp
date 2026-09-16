@@ -305,6 +305,26 @@ TEST(Position, APricedCycleTheFilterRejectedNeverOpensAPosition) {
     EXPECT_DOUBLE_EQ(pos.end_pnl, 0.0);
 }
 
+TEST(Position, ACashSettledUnderlyingHasNoShareLegAtAll) {
+    // An index cannot be owned, so there are no shares to hold, none to be called
+    // away, and no buy-and-hold benchmark. Running the simulation anyway would
+    // produce rupee figures for a position nobody could take - which look exactly
+    // as credible as real ones.
+    auto r = resultOf({
+        priced("2024-01", "2024-01", 100.0, 110.0, 2.0, 104.0),
+        priced("2024-02", "2024-02", 104.0, 114.0, 2.0, 130.0),
+    });
+    PositionConfig cfg;
+    cfg.cash_settled = true;
+
+    auto pos = simulate_covered_call(r, fixedLot(1000, {"2024-01", "2024-02"}), cfg);
+    EXPECT_TRUE(pos.cycles.empty());
+    EXPECT_DOUBLE_EQ(pos.end_pnl, 0.0);
+    EXPECT_DOUBLE_EQ(pos.benchmark_pnl, 0.0);
+    EXPECT_EQ(pos.assignments, 0);
+    EXPECT_FALSE(pos.not_applicable.empty());   // and says why
+}
+
 TEST(Position, UnpricedOutcomesNeverOpenAPosition) {
     MonthOutcome blank;
     blank.entry_month = "2024-01";

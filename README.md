@@ -10,7 +10,9 @@ options and answers three questions, deliberately kept apart:
 3. **What did the losing months have in common?** — entry conditions compared
    between winning and losing cycles.
 
-95,106 option quotes · 57 months · 5,400 lines of C++ and Python · 99 tests
+Two instruments — a single stock (IDFCFIRSTB) and a cash-settled index
+(BANKNIFTY) — across 489,000 option quotes, 57 months, 5,400 lines of C++ and
+Python, 100 tests.
 
 > ⚠️ **Before posting this anywhere — two things to fill in:**
 >
@@ -72,8 +74,18 @@ pip install -e ".[dev]"
 python -m uvicorn server.main:app --port 8000
 ```
 
-Sample data for IDFCFIRSTB (2022–2026) is committed, so a clone runs without a
-download step.
+**Option chains are not committed** — they are large (8.6 MB for the stock, 40 MB
+for the index) and fully reproducible. Fetch them once:
+
+```bash
+cd tools && python download_bhavcopies.py          # IDFCFIRSTB chain
+python prepare_index.py BANKNIFTY "NIFTY BANK"     # BANKNIFTY chain + levels
+```
+
+What *is* committed is everything needed to read the project without them: the
+underlying series, a trimmed loader fixture, and `web/` — which already holds
+every precomputed result the deployed site serves. The test suite passes on a
+fresh clone; the one test that needs a real chain skips itself and says so.
 
 ### How it is put together
 
@@ -85,7 +97,7 @@ download step.
 | Frontend | Plain HTML/JS, no build step | Vendored Chart.js; the whole UI is three files |
 | Deployment | Static export, no backend | Results are precomputed to JSON; the deployed site has nothing to attack and nothing to pay for |
 
-99 tests — 62 GoogleTest, 37 pytest. Several exist specifically to pin down the
+100 tests — 63 GoogleTest, 37 pytest. Several exist specifically to pin down the
 bugs listed above, including one that feeds the diagnostics two price series
 identical up to the entry day and divergent after, asserting the computed
 features come out equal.
@@ -301,7 +313,7 @@ Targets:
 | `backtest_core` | Static library: loaders, aggregation, strategies, diagnostics, JSON output |
 | `backtest_main` | Hardcoded-parameter driver (`src/main.cpp`) |
 | `backtest_cli` | JSON-emitting CLI (`src/cli/main_cli.cpp`), built to `bin/` |
-| `backtester_tests` | GoogleTest suite (62 tests) |
+| `backtester_tests` | GoogleTest suite (63 tests) |
 
 ### Running the tests
 
@@ -429,6 +441,44 @@ nothing else; diagnostics go to stderr behind `--verbose`. Exit codes: `0` succe
 open — the longest-dated expiry quoted on a month's first trading day. NSE lists
 three serial expiries, so this is normally `2`; asking for more is not a failure
 but an instrument that does not exist.
+
+---
+
+## Index options are a different instrument
+
+BANKNIFTY is included alongside IDFCFIRSTB, and adding it surfaced two things the
+engine had been quietly assuming.
+
+**Weekly expiries break monthly bucketing.** The chain index buckets by
+*(trade month, expiry month)*, which assumes one contract per strike per bucket —
+true for stock options, false for an index that lists weeklies. In January 2022
+alone BANKNIFTY quoted expiries on the 6th, 13th, 20th and 27th, so bucket
+`2022-01|2022-01` at strike 38000 held **four different contracts**, with quotes
+from ₹13.60 to ₹267.00 on the same day. Left alone the engine would sell one
+expiry and buy back another.
+
+`tools/prepare_index.py` keeps only the last expiry in each calendar month,
+restoring the one-contract-per-bucket invariant and matching a strategy that
+trades the monthly contract. Supporting weeklies properly means keying by expiry
+*date* rather than expiry month — a larger change, on the roadmap.
+
+**A cash-settled underlying has no share leg.** You cannot own an index, cannot be
+assigned it, and "buy and hold" would mean an ETF carrying tracking error and
+fees. Run unguarded, the covered-call simulation happily produced ₹23,390 against
+a −₹4,094 benchmark for a position nobody could take. The loader now reports
+`SERIES=INDEX`, the simulation refuses to model it, and the UI says *"No share leg
+for this underlying"* rather than showing zeros. The option leg still applies —
+index options settle in cash against the level, which is what *check price*
+measures.
+
+Note also that `meta.max_month_offset` is **11** for BANKNIFTY against **2** for a
+stock: the index lists quarterly contracts almost a year out, so long holds are
+genuinely available there.
+
+```bash
+# Prepare an index chain: filter to monthly expiries, fetch the level series
+python tools/prepare_index.py BANKNIFTY "NIFTY BANK"
+```
 
 ---
 
@@ -586,8 +636,9 @@ server/
 web/                            Generated static export (see Deploying)
 third_party/nlohmann/            Vendored single-header JSON (MIT)
 tests/                           GoogleTest suites
-tools/                           Data downloaders and the static exporter
-data/sample/                     Sample CSVs and test fixtures
+tools/                           Data downloaders, index prep, static exporter
+data/sample/                     Underlying series and fixtures (chains are
+                                 gitignored - see Quick start)
 ```
 
 ### Data schemas

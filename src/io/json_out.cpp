@@ -67,6 +67,7 @@ namespace backtester {
                 });
             }
             return json{
+                {"not_applicable",      pos.not_applicable},
                 {"cycles_run",          static_cast<int>(pos.cycles.size())},
                 {"assignments",         pos.assignments},
                 {"skipped_unknown_lot", pos.skipped_unknown_lot},

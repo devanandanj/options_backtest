@@ -247,6 +247,7 @@ int main(int argc, char** argv) {
         const ChainIndex index = chain.empty() ? ChainIndex{} : build_chain_index(chain);
         const DailyCloses daily = build_daily_closes(equity_rows);
         const LotSizes lot_sizes = build_lot_sizes(chain);
+        const bool cash_settled = is_index_series(opt.equity_path);
         const long long load_ms = ms_since(load_start);
 
         if (opt.verbose) {
@@ -273,6 +274,9 @@ int main(int argc, char** argv) {
                 pos_cfg.lots = opt.lots;
                 pos_cfg.lot_size_override = opt.lot_size;
                 pos_cfg.rebuy_after_assignment = opt.rebuy;
+                // An index has no share leg. Detected from the data rather than
+                // configured, so a new index dataset cannot be added without it.
+                pos_cfg.cash_settled = cash_settled;
                 PositionResult position = simulate_covered_call(result, lot_sizes, pos_cfg);
 
                 // What the market looked like walking into each trade. Computed here
