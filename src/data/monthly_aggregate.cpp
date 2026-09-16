@@ -43,7 +43,11 @@ namespace backtester {
             result.push_back(MonthlyPrice{
                 std::format("{:04d}-{:02d}", year, month),
                 b.last.close,
-                b.first.close
+                b.first.close,
+                std::format("{:04d}-{:02d}-{:02d}",
+                    static_cast<int>(b.first.date.year()),
+                    static_cast<unsigned>(b.first.date.month()),
+                    static_cast<unsigned>(b.first.date.day()))
             });
         }
 

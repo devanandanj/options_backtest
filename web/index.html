@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Options Backtester</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Title, view switch and engine status share one bar, so the whole first
+       screenful below it belongs to the parameters and the results. -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <h1>Options Backtester</h1>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-panel="panel-single" role="tab">Single run</button>
+      <button class="tab" data-panel="panel-sweep" role="tab">Parameter sweep</button>
+    </nav>
+
+    <div id="health" class="health" aria-live="polite">checking engine&hellip;</div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ── Single run ───────────────────────────────────────────── -->
+    <section id="panel-single" class="panel">
+      <form id="single-form" class="card control-card">
+        <div class="controls">
+          <label>Symbol
+            <select id="single-symbol" required></select>
+          </label>
+          <label>OTM buffer
+            <span class="with-unit"><input id="single-otm" type="number" value="10" min="0.5" max="100" step="0.5" required><span class="unit">%</span></span>
+          </label>
+          <label>Hold <small>months to expiry</small>
+            <input id="single-offset" type="number" value="0" min="0" max="24" step="1" required>
+          </label>
+          <label>Min entry volume <small>0 allows untraded quotes</small>
+            <input id="single-minvol" type="number" value="0" min="0" step="1">
+          </label>
+          <button type="submit">Run backtest</button>
+        </div>
+
+        <!-- The share leg. Separated because these change the rupee figures only;
+             the percentage metrics above are unaffected by how much stock is held. -->
+        <div class="controls controls-secondary">
+          <span class="group-label">Share leg</span>
+          <label>Lots held <small>one call written per lot</small>
+            <input id="single-lots" type="number" value="1" min="1" max="10000" step="1">
+          </label>
+          <label>Lot size override <small>0 = use only NSE's stated lot</small>
+            <input id="single-lotsize" type="number" value="0" min="0" step="1">
+          </label>
+          <label class="check">
+            <input id="single-rebuy" type="checkbox" checked>
+            <span>Buy back after assignment</span>
+          </label>
+        </div>
+
+        <!-- The premium-richness entry rule. Enter only when the premium is rich
+             relative to what recent cycles were paying. -->
+        <div class="controls controls-secondary">
+          <span class="group-label">Premium filter</span>
+          <label>Yield percentile <small>0 = enter every cycle</small>
+            <input id="single-yieldpct" type="number" value="0" min="0" max="100" step="5">
+          </label>
+          <label>Baseline lookback <small>cycles</small>
+            <input id="single-yieldback" type="number" value="12" min="1" max="120" step="1">
+          </label>
+        </div>
+      </form>
+
+      <div id="single-error" class="error" hidden></div>
+
+      <div id="single-results" hidden>
+        <!-- Shown when a run prices nothing: a grid of 0.00% reads as a broken
+             app, when the real answer is that the contract does not exist. -->
+        <div id="single-empty" class="empty" hidden></div>
+
+        <div class="section-head" id="single-result-head">
+          <h2>Option leg <small>premium only, as a percentage of spot &mdash; says nothing about
+            whether writing calls beat owning the stock</small></h2>
+        </div>
+        <div id="single-summary" class="summary-grid"></div>
+
+        <div class="chart-wrap card">
+          <div class="section-head" style="margin:0">
+            <h2>Equity curve <small>cumulative sum of monthly P&amp;L, in percentage points</small></h2>
+          </div>
+          <div class="chart-canvas-box"><canvas id="equity-chart"></canvas></div>
+        </div>
+
+        <!-- ── Share leg ─────────────────────────────────────────── -->
+        <section id="position-section" hidden>
+          <div class="section-head">
+            <h2>Covered-call position <small>stock plus calls, in rupees, against simply
+              holding the shares</small></h2>
+          </div>
+
+          <div id="position-banner" class="empty" hidden></div>
+          <div id="position-summary" class="summary-grid"></div>
+
+          <details class="explain">
+            <summary>How to read this</summary>
+            <p class="note">
+              <strong>Excess</strong> is strategy minus buy-and-hold, as a difference rather than
+              a ratio &mdash; both can be negative, and 93% of a loss is an outperformance that a
+              ratio would report backwards. A covered call cushions a decline and caps a rally, so
+              expect it to lead when the stock falls and lag when it runs.
+              Cycles never overlap: one lot of stock covers one contract, so a longer hold writes
+              fewer calls. A revised lot size changes how many contracts the holding covers, not
+              how many shares are owned.
+            </p>
+          </details>
+
+          <div class="table-wrap">
+            <table id="cycles-table">
+              <thead>
+                <tr>
+                  <th>Entry</th><th>Settles</th><th>Shares</th><th>Lot</th><th>Contracts</th>
+                  <th>Entry spot</th><th>Strike</th><th>Exit spot</th>
+                  <th>Premium</th><th>Assigned</th><th>P&amp;L</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Losing-month diagnostics ──────────────────────────── -->
+        <section id="diag-section" hidden>
+          <div class="section-head">
+            <h2>What losing months had in common <small>entry conditions only &mdash;
+              what was knowable before the trade</small></h2>
+          </div>
+
+          <div id="diag-banner" class="empty" hidden></div>
+
+          <div class="card" style="padding:18px 20px">
+            <div class="diag-axis">
+              <span>lower in losers</span>
+              <span class="diag-axis-mid">no difference</span>
+              <span>higher in losers</span>
+            </div>
+            <div id="diag-bars"></div>
+            <p class="diag-key">
+              Bars show Cliff's delta &mdash; the chance a random losing month scores above a
+              random winning one, minus the reverse. The shaded band is the threshold below
+              which an effect is considered negligible; a bar that stays inside it separates
+              nothing.
+            </p>
+          </div>
+
+          <details class="explain">
+            <summary>Why these features and not others</summary>
+            <p class="note">
+              Only conditions observable <strong>before</strong> the trade appear above, because
+              the question is what could have warned you. Measurements taken over the cycle
+              itself &mdash; how far the underlying moved, where it finished against the strike
+              &mdash; separate winners from losers perfectly and predict nothing, since they are
+              simply restatements of the result. They are listed below for understanding, never
+              as a signal.
+              <br><br>
+              No p-values are shown. With dozens of cycles and seven features, testing them all
+              at once inflates any confidence claim, so effect size and sample count are reported
+              instead and the result is flagged when the groups are too small to support a
+              conclusion.
+            </p>
+          </details>
+
+          <div class="table-wrap">
+            <table id="diag-table">
+              <thead>
+                <tr>
+                  <th>Entry condition</th><th>Losing median</th><th>Winning median</th>
+                  <th>Delta</th><th>Effect</th><th>Direction</th><th>n (lose/win)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="section-head">
+            <h3 class="sub-head">Measured over the cycle <small>describes the loss, cannot
+              predict it</small></h3>
+          </div>
+          <div class="table-wrap">
+            <table id="diag-outcome-table">
+              <thead>
+                <tr>
+                  <th>Measurement</th><th>Losing median</th><th>Winning median</th><th>Delta</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="section-head">
+          <h2>Monthly outcomes <small>one row per entry month</small></h2>
+        </div>
+
+        <!-- Collapsed by default: it is reference material, and open it crowds
+             out the table it describes. -->
+        <details class="explain">
+          <summary>How to read this table</summary>
+          <p class="note">
+            Each row sells the contract expiring in the check month and closes it at that
+            contract's own expiry &mdash; entry and exit are always the same instrument.
+            <strong>Strike held</strong> is judged on the underlying's close on expiry day, and means
+            the underlying stayed below the strike &mdash; not that the trade made money. A breach can
+            still profit when the premium collected exceeds how far the option went in-the-money.
+            Greyed rows had no listed strike at or above the target for that expiry, so no trade could
+            be priced; they are excluded from every statistic above.
+            <strong>Entry volume</strong> is how many contracts changed hands in the sold strike on the
+            entry day. A zero is highlighted: that premium is a carried settlement mark, not a price
+            anyone could have sold at, and far-dated strikes are often quoted for months without ever
+            trading. Raise <strong>min entry volume</strong> to make the engine climb to the next strike
+            that actually traded, or leave it at 0 to price those months and judge them yourself.
+          </p>
+        </details>
+
+        <div class="table-wrap">
+          <table id="outcomes-table">
+            <thead>
+              <tr>
+                <th>Entry month</th><th>Entry</th><th>Target strike</th><th>Traded strike</th>
+                <th>Entry premium</th><th>Yield %</th><th>Check month</th><th>Check price</th>
+                <th>Exit premium</th><th>Entry volume</th><th>Strike held</th><th>P&amp;L %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Sweep ────────────────────────────────────────────────── -->
+    <section id="panel-sweep" class="panel" hidden>
+      <form id="sweep-form" class="controls card">
+        <label>Symbol
+          <select id="sweep-symbol" required></select>
+        </label>
+        <label>OTM buffers <small>comma separated %</small>
+          <input id="sweep-otm" type="text" value="5, 10, 15, 20" required>
+        </label>
+        <label>Holds <small>months to expiry, comma separated</small>
+          <input id="sweep-offset" type="text" value="0, 1, 2" required>
+        </label>
+        <label>Min entry volume <small>0 allows untraded quotes</small>
+          <input id="sweep-minvol" type="number" value="0" min="0" step="1">
+        </label>
+        <button type="submit">Run sweep</button>
+      </form>
+
+      <div id="sweep-error" class="error" hidden></div>
+
+      <div id="sweep-results" hidden>
+        <div class="section-head">
+          <h2>Cumulative P&amp;L <small>percentage points &mdash; rows are OTM buffer, columns months held</small></h2>
+        </div>
+
+        <div class="card" style="padding:20px">
+          <div id="heatmap" class="heatmap"></div>
+          <!-- The fill hue is the encoding here, so it carries a scale. -->
+          <div class="heat-legend">
+            <span id="heat-min">&minus;</span>
+            <span class="ramp" aria-hidden="true"></span>
+            <span id="heat-max">+</span>
+            <span style="margin-left:6px">loss &rarr; gain, in percentage points</span>
+          </div>
+        </div>
+
+        <details class="explain">
+          <summary>How to read this grid</summary>
+          <p class="note">
+            Cells are shaded by cumulative P&amp;L; hover any cell for its full breakdown.
+            A cell with a high <strong>strike held</strong> rate but low <strong>coverage</strong>
+            traded fewer months than its neighbours and is not directly comparable to them.
+            Check <strong>traded</strong> before trusting a cell: a high return assembled from
+            strikes that never traded was never actually available.
+          </p>
+        </details>
+
+        <div class="section-head">
+          <h2>All combinations <small>sorted by cumulative P&amp;L</small></h2>
+        </div>
+        <div class="table-wrap">
+          <table id="sweep-table">
+            <thead>
+              <tr>
+                <th>OTM %</th><th>Offset</th><th>Cumulative %</th><th>Max DD %</th>
+                <th>Strike held %</th><th>Coverage</th><th>Traded</th>
+                <th>Avg win %</th><th>Avg loss %</th><th>Worst %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="vendor/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

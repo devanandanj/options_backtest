@@ -14,6 +14,8 @@ FetchContent_MakeAvailable(googletest)
 add_executable(backtester_tests
         test_loader.cpp
         test_short_call.cpp
+        test_position.cpp
+        test_diagnostics.cpp
         ../include/data/monthly_aggregate.hpp
         ../src/data/monthly_aggregate.cpp
 )

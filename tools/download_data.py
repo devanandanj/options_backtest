@@ -29,20 +29,114 @@ REQUIRED_OPTION_COLUMNS = [
 ]
 
 
+def _month_spans(start: date, end: date) -> list[tuple[date, date]]:
+    """The range broken into calendar months, inclusive at both ends."""
+    spans: list[tuple[date, date]] = []
+    cursor = start.replace(day=1)
+    while cursor <= end:
+        last = cursor.replace(day=calendar.monthrange(cursor.year, cursor.month)[1])
+        spans.append((max(cursor, start), min(last, end)))
+        cursor = last + timedelta(days=1)
+    return spans
+
+
+def _ist_dates(df: pd.DataFrame) -> pd.Series:
+    """DATE as "YYYY-MM-DD" in IST.
+
+    stock_df hands back IST midnight rendered in UTC, i.e. "2022-01-02 18:30:00"
+    for Monday 2022-01-03. Truncating that naively lands on the previous calendar
+    day, which silently shifts every bar back one trading day and fills the file
+    with Sundays.
+    """
+    return (pd.to_datetime(df["DATE"], utc=True)
+              .dt.tz_convert("Asia/Kolkata")
+              .dt.strftime("%Y-%m-%d"))
+
+
+def _fetch_month(span_from: date, span_to: date) -> pd.DataFrame:
+    """Rows for one calendar month, verified to actually be from that month.
+
+    NSE's history endpoint sometimes answers a window with a different month's
+    data: 2026-05-01..2026-05-31 returns April, reproducibly, while shifting
+    either endpoint by a day returns May. Both of those endpoints are non-trading
+    days (Maharashtra Day and a Sunday), which appears to be the trigger.
+
+    Rather than trust any single window, ask, check what came back, and fall back
+    to nudged endpoints until the response is really from the month requested.
+    Windows stay inside one calendar month so stock_df's own chunker leaves them
+    alone; a wider window would just be split back into the failing pair.
+    """
+    month = span_from.strftime("%Y-%m")
+    attempts = [
+        (span_from, span_to),
+        (span_from, span_to - timedelta(days=1)),
+        (span_from + timedelta(days=1), span_to),
+    ]
+    collected: list[pd.DataFrame] = []
+    for attempt_from, attempt_to in attempts:
+        if attempt_from > attempt_to:
+            continue
+        chunk = stock_df(symbol=SYMBOL, from_date=attempt_from,
+                         to_date=attempt_to, series="EQ")
+        if "SERIES" in chunk.columns:
+            chunk = chunk[chunk["SERIES"] == "EQ"]
+        if chunk.empty:
+            continue
+        chunk = chunk.assign(DATE=_ist_dates(chunk))
+        chunk = chunk[chunk["DATE"].str[:7] == month]
+        if chunk.empty:
+            continue  # the endpoint answered with some other month
+        collected.append(chunk)
+        # A nudged window drops the day it trimmed, so keep going to recover it.
+        if (attempt_from, attempt_to) == (span_from, span_to):
+            break
+    if not collected:
+        return pd.DataFrame()
+    return pd.concat(collected, ignore_index=True)
+
+
 def fetch_equity() -> pd.DataFrame:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     print(f"Fetching {SYMBOL} equity from {EQUITY_FROM} to {EQUITY_TO}...")
 
-    df = stock_df(symbol=SYMBOL, from_date=EQUITY_FROM, to_date=EQUITY_TO, series="EQ")
-    if df.empty:
+    # One request per calendar month rather than one for the whole range. stock_df
+    # chunks a long range itself and gets it wrong at some boundaries: a single
+    # 2022-01-01..2026-09-12 request returned April 2026 twice and omitted May
+    # entirely. Per-month fetches are verifiable, and a gap cannot pass unnoticed.
+    frames: list[pd.DataFrame] = []
+    empty_months: list[str] = []
+    for span_from, span_to in _month_spans(EQUITY_FROM, EQUITY_TO):
+        chunk = _fetch_month(span_from, span_to)
+        if chunk.empty:
+            empty_months.append(span_from.strftime("%Y-%m"))
+        else:
+            frames.append(chunk)
+
+    if not frames:
         raise RuntimeError("No equity records returned")
+    if empty_months:
+        print(f"  months with no rows: {', '.join(empty_months)}")
 
-    # Filter out NC/NB debt series if present
-    if "SERIES" in df.columns:
-        df = df[df["SERIES"] == "EQ"].copy()
+    df = pd.concat(frames, ignore_index=True)
 
-    df["DATE"] = pd.to_datetime(df["DATE"]).dt.strftime("%Y-%m-%d")
+    # Fallback windows overlap by design, so the same day can arrive twice; the
+    # strategy reads one close per day, so collapse them rather than let a doubled
+    # month distort anything downstream.
+    before = len(df)
+    df = df.drop_duplicates(subset="DATE", keep="first")
+    if before != len(df):
+        print(f"  dropped {before - len(df)} duplicate date rows")
     df = df.sort_values("DATE").reset_index(drop=True)
+
+    present = set(df["DATE"].str[:7])
+    missing = [f.strftime("%Y-%m") for f, _ in _month_spans(EQUITY_FROM, EQUITY_TO)
+               if f.strftime("%Y-%m") not in present]
+    if missing:
+        raise RuntimeError(
+            f"No equity rows for {', '.join(missing)} - refusing to write a file with "
+            f"calendar gaps. month_offset counts months present in the data, so a gap "
+            f"silently lengthens the holding period: with May absent, an April entry at "
+            f"offset 1 is checked against June.")
 
     out_file = OUT_DIR / f"{SYMBOL.lower()}_underlying_{EQUITY_FROM.year}_{EQUITY_TO.year}.csv"
     df.to_csv(out_file, index=False, lineterminator="\n")

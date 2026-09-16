@@ -1,0 +1,652 @@
+/*
+ * Dark theme.
+ *
+ * Colours come from the validated data-viz reference palette rather than being
+ * picked by eye: chart surface #1a1a19 on page plane #0d0d0d, series blue
+ * #3987e5, and the fixed status set. Every foreground was checked for contrast
+ * against the surface it actually sits on.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Planes */
+  --plane: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #212120;
+  --surface-3: #2a2a28;
+
+  /* Ink */
+  --text: #ffffff;
+  --text-2: #c3c2b7;
+  --muted: #898781;
+
+  /* Lines */
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --grid: #2c2c2a;
+  --axis: #383835;
+
+  /* Series & status. Status hues are reserved and never reused as a series. */
+  --accent: #3987e5;          /* series line, focus ring, outlines */
+  --accent-dim: rgba(57, 135, 229, 0.14);
+  /* Solid button: white on #3987e5 is only 3.64:1, so the fill drops to blue
+     ramp step 500, where white reads 5.39:1 and the button still sits 3.23:1
+     clear of the surface. Hover darkens rather than lightens - no lighter step
+     keeps white above 4.5:1. */
+  --accent-solid: #256abf;
+  --accent-solid-hover: #1c5cab;
+  --pos: #0ca30c;             /* 5.19:1 on surface */
+  --neg: #d03b3b;             /* reserved status fill; too dark for body text */
+  --neg-text: #e66767;        /* 5.39:1 - the numerals use this */
+  --warn: #fab219;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --ring: 0 0 0 3px rgba(57, 135, 229, 0.30);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--plane); }
+
+body {
+  margin: 0;
+  padding: 0;
+  font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--plane);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 26px 28px 80px;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 28px;
+  height: 58px;
+  background: rgba(13, 13, 13, 0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand .mark {
+  width: 18px; height: 18px; border-radius: 5px; flex: none;
+  background: linear-gradient(140deg, var(--accent), #7c4dd1);
+}
+.brand h1 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Segmented tab control */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.tab {
+  border: none;
+  background: none;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text); background: var(--surface-2); }
+.tab.active { color: var(--text); background: var(--surface-3); font-weight: 600; }
+.tab:focus-visible { outline: none; box-shadow: var(--ring); }
+
+.health {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+/* The dot is backed by the adjacent text, never the only signal. */
+.health::before {
+  content: "";
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--pos);
+  flex: none;
+}
+.health.bad { color: var(--neg); }
+.health.bad::before { background: var(--neg); }
+
+/* Below this the three top-bar groups no longer fit on one line, so the tab
+   control drops to its own full-width row rather than pushing the page sideways. */
+@media (max-width: 720px) {
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 10px 16px;
+  }
+  .tabs { order: 3; width: 100%; }
+  .tab { flex: 1; text-align: center; }
+  .health { font-size: 11px; }
+  .wrap { padding: 20px 16px 64px; }
+  .controls { padding: 16px; }
+  .controls button { margin-left: 0; width: 100%; }
+  .controls input, .controls select { min-width: 0; width: 100%; }
+  .controls label { flex: 1 1 140px; }
+}
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.panel { padding-top: 24px; }
+
+.section-head { margin: 34px 0 12px; }
+.section-head h2 {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.section-head h2 small {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 8px;
+  letter-spacing: 0;
+}
+
+/* ── Controls ────────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 18px 20px;
+}
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.controls label small {
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.controls input,
+.controls select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  min-width: 150px;
+}
+.controls input:hover,
+.controls select:hover { border-color: var(--border-strong); }
+.controls input:focus,
+.controls select:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+
+.with-unit { position: relative; display: inline-flex; align-items: center; }
+.with-unit .unit {
+  position: absolute; right: 10px;
+  color: var(--muted); font-weight: 400;
+  pointer-events: none;
+}
+.with-unit input { padding-right: 26px; }
+
+.controls button {
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-solid);
+  color: #fff;
+  cursor: pointer;
+  margin-left: auto;
+}
+.controls button:hover { background: var(--accent-solid-hover); }
+.controls button:focus-visible { outline: none; box-shadow: var(--ring); }
+.controls button:disabled { opacity: .5; cursor: progress; }
+
+/* A second controls row, visually subordinate to the first. */
+.control-card { padding: 0; }
+.controls-secondary {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  align-items: center;
+}
+.group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  align-self: center;
+}
+.controls label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.controls label.check input {
+  min-width: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Error ───────────────────────────────────────────────────────── */
+
+.error {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(208, 59, 59, 0.40);
+  border-left: 3px solid var(--neg);
+  border-radius: var(--radius);
+  background: rgba(208, 59, 59, 0.10);
+  color: #f2b5b5;   /* 9.2:1 over the composited tint */
+}
+.error strong { color: #ff9c9c; }
+.error pre {
+  margin: 10px 0 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow: auto;
+  color: var(--text-2);
+}
+
+.note {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 80ch;
+  margin: 0;
+}
+.note strong { color: var(--text); font-weight: 600; }
+
+/* Long explainers collapse so they stop competing with the data. */
+details.explain { margin: 10px 0 14px; }
+details.explain > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+details.explain > summary::-webkit-details-marker { display: none; }
+details.explain > summary::before {
+  content: "\25B8";
+  font-size: 10px;
+  transition: transform .15s ease;
+}
+details.explain[open] > summary::before { transform: rotate(90deg); }
+details.explain > summary:hover { color: var(--text-2); }
+details.explain .note { margin-top: 10px; }
+
+/* Nothing-to-show state. Informational, not an error: the run succeeded, the
+   instrument just is not listed that far out. */
+.empty {
+  margin: 22px 0 8px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.empty h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+.empty p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--text-2); max-width: 78ch; }
+.empty code {
+  background: var(--surface-3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* ── Summary tiles ───────────────────────────────────────────────── */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.stat .label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+.stat .value {
+  font-size: 21px;
+  font-weight: 600;
+  margin-top: 6px;
+  letter-spacing: -0.02em;
+}
+.stat .sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+/* The headline metric outranks the rest instead of sitting in a flat row. */
+.stat.hero {
+  grid-column: span 2;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  border-color: var(--border-strong);
+}
+.stat.hero .value { font-size: 38px; margin-top: 4px; }
+@media (max-width: 560px) { .stat.hero { grid-column: span 1; } }
+
+.pos { color: var(--pos); }
+.neg { color: var(--neg-text); }
+
+/* ── Chart ───────────────────────────────────────────────────────── */
+
+.chart-wrap {
+  margin-top: 12px;
+  padding: 18px 20px 20px;
+  /* Chart.js sizes the canvas from its container, so without a ceiling here the
+     two feed each other: a canvas left at its old width keeps the container wide,
+     which keeps the canvas wide, and the page scrolls sideways on a narrow window. */
+  max-width: 100%;
+  overflow: hidden;
+}
+.chart-wrap canvas { max-width: 100%; }
+/* maintainAspectRatio is off, so the canvas fills this box; give it a real height. */
+.chart-canvas-box { position: relative; height: 300px; margin-top: 14px; }
+
+/* ── Tables ──────────────────────────────────────────────────────── */
+
+.table-wrap {
+  max-width: 100%;
+  overflow: auto;
+  max-height: 580px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: 9px 14px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  /* A shade lighter than --muted: these labels sit on --surface-2, where
+     --muted would land at 4.49:1, just under AA for text this small. */
+  color: #918f88;
+  font-weight: 600;
+}
+th:first-child, td:first-child { text-align: left; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface-2); }
+
+/* Unpriced months: no trade existed, so they must not read as break-even zeros. */
+/* Recessive, but still legible: #6d6c67 measured 3.31:1, under AA. */
+tr.unpriced td { color: #8a8984; background: rgba(255, 255, 255, 0.012); }
+tr.unpriced:hover td { background: rgba(255, 255, 255, 0.035); }
+
+.badge {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-block;
+}
+.badge.held { background: rgba(12, 163, 12, 0.16); color: #5bd45b; }
+.badge.breach { background: rgba(208, 59, 59, 0.16); color: #f07a7a; }
+.badge.none { background: var(--surface-3); color: var(--muted); }
+
+/* A cycle whose shares were called away. Backed by the word, not colour alone. */
+.badge.assigned { background: rgba(250, 178, 25, 0.16); color: #f3c05a; }
+
+/* A priced month whose sold strike never traded on the entry day: the premium is
+   a settlement mark, so that row's P&L was never actually obtainable. The literal
+   0 and the hover title carry it too; colour is never the only cue. */
+.untraded { color: var(--warn); font-weight: 600; }
+
+/* ── Diagnostics ─────────────────────────────────────────────────── */
+
+.sub-head {
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.sub-head small {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 8px;
+  letter-spacing: 0;
+}
+
+.diag-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.diag-axis-mid { color: var(--text-2); }
+
+.diag-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 0;
+}
+.diag-name { font-size: 12.5px; color: var(--text-2); }
+.diag-value {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  min-width: 52px;
+  text-align: right;
+}
+
+/* The track carries a centre line and, around it, the band inside which an
+   effect counts as negligible. Drawing the threshold rather than naming it lets
+   a null result be seen instead of worked out. */
+.diag-track {
+  position: relative;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.diag-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.045);
+  border-left: 1px dashed var(--border-strong);
+  border-right: 1px dashed var(--border-strong);
+}
+.diag-mid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--axis);
+}
+.diag-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+/* An effect too small to mean anything is drawn muted, so the eye is not pulled
+   to a bar that the statistics say to ignore. */
+.diag-bar.negligible { background: var(--surface-3); }
+
+/* Narrow: the label column starves the track, and the bar is the point. Stack so
+   the track keeps the full width. */
+@media (max-width: 720px) {
+  .diag-row {
+    grid-template-columns: 1fr auto;
+    gap: 4px 10px;
+    padding: 8px 0;
+  }
+  .diag-name { grid-column: 1 / -1; }
+}
+
+.diag-key {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 14px 0 0;
+  max-width: 78ch;
+}
+
+.mag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.mag.negligible { background: var(--surface-3); color: var(--muted); }
+.mag.small { background: rgba(255,255,255,.07); color: var(--text-2); }
+.mag.medium { background: rgba(250, 178, 25, 0.16); color: #f3c05a; }
+.mag.large { background: rgba(57, 135, 229, 0.18); color: #7fb3f0; }
+
+/* ── Heatmap ─────────────────────────────────────────────────────── */
+
+.heatmap {
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 4px;
+}
+.heat-cell {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 88px;
+  cursor: default;
+  color: #fff;
+}
+.heat-cell.header {
+  background: none;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+.heat-cell.best { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Not a value on the scale: no contract could be opened, so it gets no fill. */
+.heat-cell.none {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 400;
+  border: 1px dashed var(--border-strong);
+}
+
+/* Diverging legend: the fill hue is the encoding, so it gets a scale. */
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.heat-legend .ramp {
+  width: 190px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #be3838, var(--axis), #367cd1);
+  border: 1px solid var(--border);
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────── */
+
+* { scrollbar-color: var(--surface-3) transparent; scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+}
+::-webkit-scrollbar-thumb:hover { background: #3a3a37; }

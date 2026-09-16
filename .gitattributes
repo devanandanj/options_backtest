@@ -1,0 +1,26 @@
+# Normalise line endings in the repository.
+#
+# Everything here was authored on Windows and is CRLF on disk, which makes GitHub
+# render whole files as changed and turns every diff into noise. Storing LF in the
+# repository while leaving working copies alone fixes that without anyone having to
+# reconfigure their editor.
+#
+# After adding this, run once to rewrite the index:
+#   git add --renormalize .
+
+* text=auto eol=lf
+
+# Binary and vendored assets: never touched.
+*.png   binary
+*.jpg   binary
+*.zip   binary
+*.exe   binary
+
+# Vendored third-party sources, excluded from language stats and diffs so the
+# repository is reported as C++/Python rather than as someone else's JSON header.
+third_party/**            linguist-vendored
+server/static/vendor/**   linguist-vendored
+
+# Sample market data is data, not source. Collapsed in diffs and kept out of the
+# language breakdown.
+data/**  linguist-generated -diff

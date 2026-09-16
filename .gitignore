@@ -1,22 +1,29 @@
-# ===================================================================
-# CLion / JetBrains IDE Files
-# ===================================================================
+# ── Secrets ──────────────────────────────────────────────────────
+# First, and deliberately broad. Nothing here is currently used by the project —
+# it needs no keys, and the NSE archives are public — but a downloader that one
+# day wants a session token is exactly how a credential reaches a public repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials.json
+secrets.*
+*.secret
+
+# ── Editor and tooling ───────────────────────────────────────────
 .idea/
+.vscode/
+/.claude
+*.swp
+*~
+
+# ── Build output ─────────────────────────────────────────────────
 cmake-build-*/
-./.claude
-
-# If you prefer to version code style and run configurations within your team,
-# comment out the .idea/ rule above and uncomment the specific ignores below:
-# .idea/workspace.xml
-# .idea/tasks.xml
-# .idea/usage.statistics.xml
-# .idea/shelf/
-# .idea/dictionaries/
-# .idea/httpRequests/
-
-# ===================================================================
-# CMake & Build Artifacts
-# ===================================================================
 build/
 bin/
 lib/
@@ -30,10 +37,10 @@ Makefile
 compile_commands.json
 CTestTestfile.cmake
 Testing/
+# CMake writes this to the repository root and it embeds absolute paths,
+# which would publish the local username and directory layout.
+cmake_test_discovery_*.json
 
-# ===================================================================
-# Compiled Binaries & Object Files
-# ===================================================================
 *.o
 *.obj
 *.so
@@ -46,21 +53,32 @@ Testing/
 *.ilk
 *.exp
 
-# ===================================================================
-# System & Editor Temporary Files
-# ===================================================================
-# Windows
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# ── Data ─────────────────────────────────────────────────────────
+# Partial downloads. The downloader writes to .tmp and moves it into place, so a
+# stray .tmp is an interrupted run rather than anything worth keeping.
+*.csv.tmp
+data/sample/*.temp.csv
+
+# Scratch. temp/bhavcpy.py is an earlier prototype of download_bhavcopies.py,
+# kept locally for reference but superseded and not worth publishing.
+temp/
+
+# ── Deployment ───────────────────────────────────────────────────
+.vercel
+node_modules/
+
+# ── OS ───────────────────────────────────────────────────────────
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
-# macOS
 .DS_Store
-
-# Crash dumps & core files
 core
 *.dmp
-
-# Data & logs (uncomment if you store local scratch data)
-# *.log
-# *.csvgit push origin master --force

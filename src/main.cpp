@@ -7,6 +7,6 @@
 int main() {
     backtester::run_short_call("../data/sample/idfcfirstb_underlying_2022_2026.csv",
         "../data/sample/idfcfirstb_ce_2022_2026.csv",
-        0.10, 2);
+        0.10, 1);
     return 0;
 }
