@@ -14,14 +14,10 @@ Two instruments — a single stock (IDFCFIRSTB) and a cash-settled index
 (BANKNIFTY) — across 489,000 option quotes, 57 months, 5,400 lines of C++ and
 Python, 100 tests.
 
-> ⚠️ **Before posting this anywhere — two things to fill in:**
->
-> 1. Replace this block with your demo link once Vercel is live:
->    `**[▶ Live demo](https://your-project.vercel.app)**`
-> 2. Add a screenshot — run the UI, capture the single-run view, save it as
->    `docs/dashboard.png`, and uncomment the image line below.
+**[▶ Live demo](https://options-backtest-six.vercel.app/)** — 96 precomputed runs,
+no backend, nothing to sign in to.
 
-<!-- ![Dashboard](docs/dashboard.png) -->
+![Dashboard](docs/dashboard.png)
 
 ---
 

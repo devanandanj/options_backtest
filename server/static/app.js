@@ -71,6 +71,13 @@ function constrainToOptions(id, values, format = (v) => v, selected = null) {
     select.appendChild(opt);
   }
   select.value = String(selected !== null && values.includes(selected) ? selected : values[0]);
+
+  // A unit suffix is positioned over the right edge of a text input, where a
+  // select puts its dropdown arrow. The option labels carry the unit anyway
+  // ("10%"), so drop the overlay rather than stack two glyphs on each other.
+  const unit = input.parentElement?.querySelector(".unit");
+  if (unit) unit.remove();
+
   input.replaceWith(select);
 }
 
