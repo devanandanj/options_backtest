@@ -1,16 +1,94 @@
 # options-backtest
 
 A C++20 backtesting engine for NSE (India) equity options, with a Python data
-pipeline and a localhost web UI.
-
-It writes out-of-the-money calls against IDFCFIRSTB-style single-stock options
-and answers three separate questions, deliberately kept apart:
+pipeline and a web UI. It writes out-of-the-money calls against single-stock
+options and answers three questions, deliberately kept apart:
 
 1. **Did the option leg pay?** — premium collected against premium paid back.
 2. **Did it beat owning the stock?** — the share leg, in rupees, against a
    buy-and-hold benchmark.
 3. **What did the losing months have in common?** — entry conditions compared
-   between winners and losers.
+   between winning and losing cycles.
+
+95,106 option quotes · 57 months · 5,400 lines of C++ and Python · 99 tests
+
+> ⚠️ **Before posting this anywhere — two things to fill in:**
+>
+> 1. Replace this block with your demo link once Vercel is live:
+>    `**[▶ Live demo](https://your-project.vercel.app)**`
+> 2. Add a screenshot — run the UI, capture the single-run view, save it as
+>    `docs/dashboard.png`, and uncomment the image line below.
+
+<!-- ![Dashboard](docs/dashboard.png) -->
+
+---
+
+## The interesting part is what it caught
+
+Most of the engineering here went into *not fooling myself*. Four examples, each
+of which produced a confident, plausible, wrong answer first:
+
+**A premium filter that appeared to triple returns.** Entering only when the
+premium was rich returned +3.9 per cycle against +0.8 unfiltered — until a
+liquidity check showed that **every single one of those entries, 18 of 18, was on
+a contract that never traded.** Their quoted price was a frozen settlement mark
+nobody could have sold at. Requiring real trades collapses the edge to +0.06. The
+filter wasn't finding rich options; it was a stale-quote detector.
+
+**Lookahead bias worth 12 percentage points.** An early version picked the strike
+from the month-*end* close while reading the premium at month-start, so every
+rally month got its strike set relative to the post-rally price.
+
+**A data feed that shifted every price one day earlier.** NSE's API returns IST
+midnight rendered in UTC, so naive truncation moved Monday's bar to Sunday — the
+underlying file contained 229 Sundays and 4 Fridays before it was caught.
+
+**Cross-contract pricing.** At holds beyond one month the exit was priced from a
+*different expiry* than the one sold — selling a May contract and buying back a
+June one — producing large fictitious losses.
+
+The engine now reports what it cannot support rather than filling gaps: cycles it
+could not price, lot sizes NSE never published, and effect sizes computed on
+samples too small to mean anything are each labelled as such instead of being
+quietly averaged in.
+
+---
+
+## Quick start
+
+```bash
+# 1. Build the engine
+cmake -S . -B cmake-build-debug -G Ninja
+cmake --build cmake-build-debug
+
+# 2. Run it — JSON on stdout, nothing else
+./cmake-build-debug/bin/backtest_cli \
+  --equity data/sample/idfcfirstb_underlying_2022_2026.csv \
+  --chain  data/sample/idfcfirstb_ce_2022_2026.csv \
+  --otm 0.10 --offset 0 --min-volume 1 --pretty
+
+# 3. Or the web UI
+pip install -e ".[dev]"
+python -m uvicorn server.main:app --port 8000
+```
+
+Sample data for IDFCFIRSTB (2022–2026) is committed, so a clone runs without a
+download step.
+
+### How it is put together
+
+| Layer | Choice | Why |
+| --- | --- | --- |
+| Engine | C++20, no dependencies beyond a vendored JSON header | Parses 95k chain rows in ~1 s; the strike lookup is a binary search over a prebuilt index rather than a scan |
+| Interface | JSON on stdout, one document per invocation | The engine is testable and scriptable without the web layer; stdout discipline is enforced by a test |
+| Statistics | Python, pure stdlib | The definitions are the part most likely to change, and ~50 rows is nothing to optimise |
+| Frontend | Plain HTML/JS, no build step | Vendored Chart.js; the whole UI is three files |
+| Deployment | Static export, no backend | Results are precomputed to JSON; the deployed site has nothing to attack and nothing to pay for |
+
+99 tests — 62 GoogleTest, 37 pytest. Several exist specifically to pin down the
+bugs listed above, including one that feeds the diagnostics two price series
+identical up to the entry day and divergent after, asserting the computed
+features come out equal.
 
 ---
 
