@@ -1,0 +1,29 @@
+# Files uploaded to Vercel but never used by the deployed site.
+#
+# The deployment is static: `vercel.json` points at `web/`, which already contains
+# the frontend and every precomputed result. Nothing is built on Vercel, so the
+# engine sources, the test suites and the raw market data are dead weight in the
+# upload — data/sample alone is 8.7 MB against a 2.4 MB site.
+#
+# Excluded here, not from git: the repository still carries all of it, because
+# regenerating `web/` needs the engine and the CSVs. This only trims what travels
+# to Vercel.
+
+# Engine and tests
+src/
+include/
+tests/
+third_party/
+CMakeLists.txt
+cmake-build-*/
+
+# Raw market data. Results derived from it live in web/api/.
+data/
+
+# Python backend and tooling. The static build has no server side.
+server/
+tools/
+pyproject.toml
+
+# Docs that are not served
+THIRD_PARTY.md
